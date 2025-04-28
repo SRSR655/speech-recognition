@@ -1,6 +1,8 @@
 streamlit
 tensorflow
 librosa
+pyaudio
+sounddevice
 streamlit-audio-recorder
 numpy
 gdown
