@@ -8,16 +8,13 @@ import tempfile
 import gdown
 
 # Download models from Google Drive (replace with your file IDs)
-trained_model_url = 'https://drive.google.com/uc?id=your_trained_model_file_id'
-testing_model_url = 'https://drive.google.com/uc?id=your_testing_model_file_id'
+trained_model_url = 'https://drive.google.com/uc?id=11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y'
 
 # Download the models
 gdown.download(trained_model_url, 'trained_model.keras', quiet=False)
-gdown.download(testing_model_url, 'testing_model.keras', quiet=False)
 
 # Load the trained and testing models
 trained_model = load_model('trained_model.keras')
-testing_model = load_model('testing_model.keras')
 
 # Emotion labels (ensure these match with the model's class labels)
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
@@ -55,17 +52,15 @@ def process_audio(file_path):
 
     # Make predictions using both models
     trained_predictions = trained_model.predict(mfcc)
-    testing_predictions = testing_model.predict(mfcc)
+   
 
     # Get predicted class from both models
     trained_class = np.argmax(trained_predictions, axis=1)
-    testing_class = np.argmax(testing_predictions, axis=1)
-
+    
     # Get the emotion labels
     trained_emotion = emotion_labels[trained_class[0]]
-    testing_emotion = emotion_labels[testing_class[0]]
-
-    return trained_emotion, testing_emotion
+    
+    return trained_emotion
 
 # Streamlit UI
 def main():
@@ -87,7 +82,6 @@ def main():
         # Show the predictions
         st.subheader("Emotion Predictions:")
         st.write(f"Trained Model Prediction: {trained_emotion}")
-        st.write(f"Testing Model Prediction: {testing_emotion}")
 
 if __name__ == "__main__":
     main()
