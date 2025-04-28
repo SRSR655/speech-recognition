@@ -1,41 +1,22 @@
 import streamlit as st
-import sounddevice as sd
 import numpy as np
 import librosa
 from tensorflow.keras.models import load_model
-from scipy.io.wavfile import write
 import tempfile
-import gdown
-
-# Download models from Google Drive (replace with your file IDs)
-trained_model_url = 'https://drive.google.com/uc?id=11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y'
-
-# Download the models
-gdown.download(trained_model_url, 'trained_model.keras', quiet=False)
+from streamlit_audio_recorder import audio_recorder
 
 # Load the trained and testing models
-trained_model = load_model('trained_model.keras')
+trained_model = load_model('path_to_your_trained_model.keras')
+#testing_model = load_model('path_to_your_testing_model.keras')
 
 # Emotion labels (ensure these match with the model's class labels)
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
 
-# Function to record audio
-def record_audio():
-    duration = 3  # Duration of the recording in seconds
-    sample_rate = 16000  # Sample rate of the microphone
-
-    # Inform the user about recording
-    st.write("Recording... Please speak into your microphone.")
-
-    # Record audio
-    audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='int16')
-    sd.wait()  # Wait until the recording is finished
-
-    # Save the recording as a temporary WAV file
+# Function to save recorded bytes into a WAV file
+def save_audio(audio_bytes):
     temp_wav = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-    write(temp_wav.name, sample_rate, audio_data)
-
-    # Process the audio and return the path of the saved file
+    temp_wav.write(audio_bytes)
+    temp_wav.flush()
     return temp_wav.name
 
 # Function to preprocess the audio and make predictions from both models
@@ -52,14 +33,16 @@ def process_audio(file_path):
 
     # Make predictions using both models
     trained_predictions = trained_model.predict(mfcc)
-   
+    #testing_predictions = testing_model.predict(mfcc)
 
     # Get predicted class from both models
     trained_class = np.argmax(trained_predictions, axis=1)
-    
+    #testing_class = np.argmax(testing_predictions, axis=1)
+
     # Get the emotion labels
     trained_emotion = emotion_labels[trained_class[0]]
-    
+    #testing_emotion = emotion_labels[testing_class[0]]
+
     return trained_emotion
 
 # Streamlit UI
@@ -68,20 +51,25 @@ def main():
     st.title("Speech Emotion Recognition")
     st.write("This app records your voice and predicts your emotion based on speech.")
 
-    # Button to record audio
-    if st.button("Record Your Voice"):
-        # Record and process audio
-        audio_file = record_audio()
+    # Record audio using browser
+    audio_bytes = audio_recorder()
 
-        # Show status message
+    # When user records
+    if audio_bytes:
+        st.audio(audio_bytes, format="audio/wav")
         st.write("Processing your voice...")
-        
+
+        # Save bytes to a temp WAV file
+        audio_file = save_audio(audio_bytes)
+
         # Make predictions from both models
-        trained_emotion, testing_emotion = process_audio(audio_file)
+        trained_emotion = process_audio(audio_file)
 
         # Show the predictions
         st.subheader("Emotion Predictions:")
         st.write(f"Trained Model Prediction: {trained_emotion}")
+        #st.write(f"Testing Model Prediction: {testing_emotion}")
 
 if __name__ == "__main__":
     main()
+
