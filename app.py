@@ -9,18 +9,27 @@ from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 # Emotion labels
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
 
-# Function to save audio frames as a temporary WAV file
+# Custom audio processor to collect frames
+class AudioProcessor(AudioProcessorBase):
+    def __init__(self):
+        self.frames = []
+
+    def recv_audio(self, frame):
+        self.frames.append(frame)
+        return frame
+
+# Save recorded audio as a WAV file
 def save_temp_wav(frames, sample_rate=16000):
     wav_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     samples = b"".join([f.to_ndarray().tobytes() for f in frames])
     with wave.open(wav_file.name, 'wb') as wf:
         wf.setnchannels(1)
-        wf.setsampwidth(2)  # 16-bit audio
+        wf.setsampwidth(2)
         wf.setframerate(sample_rate)
         wf.writeframes(samples)
     return wav_file.name
 
-# Function to process the audio and make predictions
+# Preprocess and predict emotion
 def process_audio(file_path, model):
     y, sr = librosa.load(file_path, sr=16000)
     mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
@@ -31,32 +40,32 @@ def process_audio(file_path, model):
     return emotion_labels[predicted_class[0]]
 
 # Streamlit UI
-st.title("🎙️ Speech Emotion Recognition (Streamlit Cloud-Compatible)")
-st.write("Speak into the mic below. Your emotion will be predicted!")
+st.title("🎤 Live Speech Emotion Recognition")
+st.write("Speak into the mic. Get your predicted emotion.")
 
-# Upload model file
-uploaded_model = st.file_uploader("trainedmodel.keras", type="keras")
+uploaded_model_file = st.file_uploader("Upload your trained Keras model (.keras)", type="keras")
 
-# Load model once uploaded
-if uploaded_model is not None:
+model = None
+if uploaded_model_file is not None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp:
-        tmp.write(uploaded_model.read())  # Save the uploaded file to a temporary location
-        model = load_model(tmp.name)  # Load the model
+        tmp.write(uploaded_model_file.read())
+        model = load_model(tmp.name)
+        st.success("✅ Model loaded successfully!")
 
-    st.success("Model successfully uploaded and loaded!")
-
-    # Start WebRTC for audio recording
+if model:
+    # Start recording
     ctx = webrtc_streamer(
-        key="mic",
+        key="audio",
         mode="sendonly",
-        audio_processor_factory=AudioProcessorBase,
+        audio_processor_factory=AudioProcessor,
         media_stream_constraints={"video": False, "audio": True},
     )
 
     if ctx.audio_processor and ctx.audio_processor.frames:
-        st.success("Recording complete! Click button below to analyze.")
-        if st.button("Predict Emotion"):
+        st.info("Recording... speak now!")
+
+        if st.button("🔍 Analyze Emotion"):
             audio_path = save_temp_wav(ctx.audio_processor.frames)
             emotion = process_audio(audio_path, model)
-            st.subheader("🎯 Predicted Emotion:")
-            st.write(f"**{emotion}**")
+            st.success(f"🎯 Predicted Emotion: **{emotion}**")
+
