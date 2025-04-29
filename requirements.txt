@@ -1,9 +1,5 @@
 streamlit
+streamlit-webrtc
 tensorflow
 librosa
-pyaudio
-sounddevice
-streamlit-audio-recorder
 numpy
-gdown
-scipy
