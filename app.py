@@ -3,24 +3,38 @@ import numpy as np
 import librosa
 from tensorflow.keras.models import load_model
 import tempfile
-import gdown
-import av
 import os
+import requests
 import wave
 
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 
-# Your Google Drive shareable link for the model
-drive_link = "https://drive.google.com/uc?id=11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y"
+# Your Google Drive file ID
+file_id = "11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y"
 
-# Function to download and load the model using gdown
-def load_model_from_gdown(drive_link):
+# Function to download file from Google Drive using requests
+def download_file_from_google_drive(file_id, destination):
+    URL = f"https://drive.google.com/uc?id={file_id}"
+    session = requests.Session()
+    response = session.get(URL, stream=True)
+    
+    if response.status_code == 200:
+        with open(destination, "wb") as f:
+            for chunk in response.iter_content(1024):
+                if chunk:
+                    f.write(chunk)
+        return destination
+    else:
+        raise Exception("Failed to retrieve file from Google Drive")
+
+# Function to load the model
+def load_model_from_drive(file_id):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp:
-        gdown.download(drive_link, tmp.name, quiet=False)
-        return load_model(tmp.name)
+        downloaded_file = download_file_from_google_drive(file_id, tmp.name)
+        return load_model(downloaded_file)
 
 # Load the model (without caching)
-trained_model = load_model_from_gdown(drive_link)
+trained_model = load_model_from_drive(file_id)
 
 # Emotion labels
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
@@ -70,4 +84,5 @@ if ctx.audio_processor and ctx.audio_processor.frames:
         emotion = process_audio(audio_path)
         st.subheader("🎯 Predicted Emotion:")
         st.write(f"**{emotion}**")
+
 
