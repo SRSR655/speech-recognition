@@ -3,20 +3,17 @@ import numpy as np
 import librosa
 from tensorflow.keras.models import load_model
 import tempfile
-import os
 import requests
 import wave
 
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 
-# Your Google Drive file ID
-file_id = "11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y"
+# URL to the raw model file on GitHub
+github_model_url = "https://raw.githubusercontent.com/username/repository-name/main/path/to/your_model_file.keras"
 
-# Function to download file from Google Drive using requests
-def download_file_from_google_drive(file_id, destination):
-    URL = f"https://drive.google.com/uc?id={file_id}"
-    session = requests.Session()
-    response = session.get(URL, stream=True)
+# Function to download file from GitHub
+def download_file_from_github(url, destination):
+    response = requests.get(url, stream=True)
     
     if response.status_code == 200:
         with open(destination, "wb") as f:
@@ -25,16 +22,16 @@ def download_file_from_google_drive(file_id, destination):
                     f.write(chunk)
         return destination
     else:
-        raise Exception("Failed to retrieve file from Google Drive")
+        raise Exception("Failed to retrieve file from GitHub")
 
 # Function to load the model
-def load_model_from_drive(file_id):
+def load_model_from_github(url):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp:
-        downloaded_file = download_file_from_google_drive(file_id, tmp.name)
+        downloaded_file = download_file_from_github(url, tmp.name)
         return load_model(downloaded_file)
 
 # Load the model (without caching)
-trained_model = load_model_from_drive(file_id)
+trained_model = load_model_from_github(github_model_url)
 
 # Emotion labels
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
@@ -84,5 +81,6 @@ if ctx.audio_processor and ctx.audio_processor.frames:
         emotion = process_audio(audio_path)
         st.subheader("🎯 Predicted Emotion:")
         st.write(f"**{emotion}**")
+
 
 
