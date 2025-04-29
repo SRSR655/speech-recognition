@@ -10,20 +10,19 @@ import wave
 
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
 
-# Google Drive shareable link for your model
+# Your Google Drive shareable link for the model
 drive_link = "https://drive.google.com/uc?id=11G5gIIQ-wc4VDeyxz2gbxvL0D8BK8M4Y"
 
 # Function to download and load the model using gdown
-@st.cache_resource
 def load_model_from_gdown(drive_link):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp:
         gdown.download(drive_link, tmp.name, quiet=False)
         return load_model(tmp.name)
 
-# Load the model
+# Load the model (without caching)
 trained_model = load_model_from_gdown(drive_link)
 
-# Emotion labels (ensure these match with your model's class labels)
+# Emotion labels
 emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
 
 class AudioRecorder(AudioProcessorBase):
@@ -71,3 +70,4 @@ if ctx.audio_processor and ctx.audio_processor.frames:
         emotion = process_audio(audio_path)
         st.subheader("🎯 Predicted Emotion:")
         st.write(f"**{emotion}**")
+
